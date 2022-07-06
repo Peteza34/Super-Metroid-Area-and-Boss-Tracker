@@ -2,8 +2,7 @@
 This is an area and boss tracker that is meant to be used for area randomizer modes
 of the Super Metroid VARIA Randomizer. It is simpler than the one on the VARIA website, 
 but is designed to be compact so you can place it alongside a windowed emulator on the
-same monitor. I won't be adding much more functionality to it I don't think, but will 
-improve the presentation of it in the future.
+same monitor. 
 
 The only requirements for running the tracker is Pygame. 
 You can simply run main.py without any args.
@@ -12,22 +11,21 @@ It "should" work on windows, mac, and linux if you run from source.
 
 import pygame
 import os
-import itemtracker
-import areatracker
+import trackercore
 import image
 from constants import *
 from settings import *
 
-pygame.init()
+os.environ["SDL_MOUSE_FOCUS_CLICKTHROUGH"] = "1" #allows mouse click events when window is not in focus
+os.environ["SDL_VIDEO_WINDOW_POS"] = str(WINDOW_OFFSET[0]) + "," + str(WINDOW_OFFSET[1]) #starting position for the window
 
-os.environ["SDL_MOUSE_FOCUS_CLICKTHROUGH"] = "1"
+pygame.init()
 
 WIN = pygame.display.set_mode(WINDOW_SIZE)
 pygame.display.set_caption(TITLE)
 pygame.display.set_icon(image.singleImage(ICON_PATH))
 
-_itemTracker = itemtracker.ItemTracker(ITEM_TRACKER_SIZE, ITEM_TRACKER_POSITION, ITEM_DATA)
-_areaTracker = areatracker.AreaTracker(AREA_TRACKER_SIZE, AREA_TRACKER_POSITION, NODE_DATA, NODE_COLORS, BACKGROUND_DATA, BASE_NODE_PATH, ARROW_PATH, TRASHCAN_PATH, TRASHCAN_POSITION, BOSS_PATHS, BOSS_DATA, BOSS_COLOR, AREA_TRACKER_BACKGROUND_IMAGE)
+_trackerCore = trackercore.TrackerCore(WINDOW_SIZE, image.singleImage(BACKGROUND_PATH))
 
 def main():
     clock = pygame.time.Clock()
@@ -36,28 +34,23 @@ def main():
 
     while isRunning:
         clock.tick(FPS)
-        mousePosition = mouse.get_pos()
-        
-        #check events and update trackers
+        click = [0, 0, 0] #[left click, middle click, right click]
+        mousePos = mouse.get_pos()
+
+        #check for events
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 isRunning = False
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                _itemTracker.handleClick((mousePosition[0] - _itemTracker.position[0], mousePosition[1] - _itemTracker.position[1]))
-                if mouse.get_pressed()[0]:
-                    _areaTracker.handleLeftClick((mousePosition[0] - _areaTracker.position[0], mousePosition[1] - _areaTracker.position[1]))
-                elif mouse.get_pressed()[1]:
-                    _areaTracker.handleMiddleClick((mousePosition[0] - _areaTracker.position[0], mousePosition[1] - _areaTracker.position[1]))
-                elif mouse.get_pressed()[2]:
-                    _areaTracker.handleRightClick((mousePosition[0] - _areaTracker.position[0], mousePosition[1] - _areaTracker.position[1]))
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                click = mouse.get_pressed()[:3]
+
+        #update trackers
+        _trackerCore.update(mousePos, click)
                 
         #clear screen and draw trackers
         WIN.fill(TRANSPARENT)
-        _itemTracker.draw((mousePosition[0] - _itemTracker.position[0], mousePosition[1] - _itemTracker.position[1]))
-        _areaTracker.draw((mousePosition[0] - _areaTracker.position[0], mousePosition[1] - _areaTracker.position[1]))
-        WIN.blit(_itemTracker, _itemTracker.position)
-        WIN.blit(_areaTracker, _areaTracker.position)
-
+        _trackerCore.draw(mousePos)
+        WIN.blit(_trackerCore, ORIGIN)
         pygame.display.update()
     
     pygame.quit()

@@ -2,21 +2,16 @@ import pygame
 import image
 from enum import Enum
 from constants import *
-from settings import *
 
-#data = (name, location(x, y), type)
 def initAreaNodes(data):
     nodes = {}
     for entry in data:
         nodes[entry[0]] = AreaNode(entry[0], entry[1], entry[2])
     return nodes
 
-#data = (name, location(x, y))
 def initBossNodes(data):
     return [BossNode(entry[0], entry[1]) for entry in data]
 
-#data = (key(type of transition: heat, water, or normal), color(rgba))
-#baseImagePath is a path to a template image used to construct our areanode images
 def initAreaImages(data, baseImagePath):
     nodeImages = {}
     baseImage = image.singleImage(baseImagePath)
@@ -36,19 +31,13 @@ def initAreaImages(data, baseImagePath):
         nodeImages[entry[0] + "Highlight"] = imageB
     return nodeImages
 
-#bossPaths = list of paths for the boss images and the template boss node
-#The template node is assumed to be in index 0
-#color = the default color of the interior of the boss nodes
-def initBossImages(bossPaths, color):
+def initBossImages(bossPaths):
     images = {}
-    #Highlight color for the mouse-hover image of default bossNodes, derived from interior color
     baseImage = image.singleImage(bossPaths[0])
-    colorB = [(val // 4 * 3) for val in color]
-    colorB[-1] = 255
     
     #default bossNode images
-    imageDefault = image.changeColor(baseImage.copy(), WHITISH, color)
-    imageDefaultHighlight = image.changeColor(imageDefault.copy(), BLACKISH, colorB)
+    imageDefault = image.addBackground(image.changeColor(baseImage.copy(), WHITISH, TRANSPARENT), image.singleImage(bossPaths[1]))
+    imageDefaultHighlight = image.changeColor(imageDefault.copy(), BLACKISH, GRAY)
     images["default"] = imageDefault
     images["defaultHighlight"] = imageDefaultHighlight
 
@@ -59,7 +48,7 @@ def initBossImages(bossPaths, color):
     images["defaultInactiveHighlight"] = imageInactiveHighlight
 
     #construct the boss images for each of the 4 bosses
-    for entry in bossPaths[1:]:
+    for entry in bossPaths[2:]:
         #create boss image and give it blackish border
         bossImage = image.addBackground(image.changeColor(baseImage.copy(), WHITISH, TRANSPARENT), image.singleImage(entry))
         key = entry[1][:-4] #parse filename without extension to use as key
@@ -76,23 +65,16 @@ def initBossImages(bossPaths, color):
         images[key + "Highlight"] = bossHighlight
     return images
 
-#data = path to background image
-#will give it a plain black background if hasBackground = False
-def initBackground(data, hasBackground = True):
-    background = None
-    if hasBackground:
-        background = image.singleImage(data[0])
-    return image.addBackground(image.singleImage(data[1]), background)
-
-#Used for disposing of active transition links
 class Trashcan:
     def __init__(self, position, imagePath):
         self.position = position
         self.image = image.dimImage(image.singleImage(imagePath), TRASHCAN_DIM_PERCENT)
-        self.highlightImage = image.brightenImage(self.image.copy(), 15)
+        self.highlightImage = image.brightenImage(self.image.copy(), TRASHCAN_BRIGHTEN_AMOUNT)
         self.rect = self.image.get_rect(center = position)
 
-#Represents each area transition
+    def __str__(self):
+        return "Trash Can"
+
 class AreaNode:
     def __init__(self, name, position, nodeType):
         self.name = name
@@ -103,7 +85,9 @@ class AreaNode:
         self.nodeType = nodeType
         self.linkType = "normal"
 
-#Represents each boss location
+    def __str__(self):
+        return self.name
+
 class BossNode:
     def __init__(self, name, position):
         self.name = name
@@ -112,7 +96,12 @@ class BossNode:
         self.isActive = True
         self.bossIndex = 0
 
-#Represents a link between two area transitions
+    def __str__(self):
+        s = self.name
+        if self.bossIndex > 0:
+            s = s + " - " + BOSS_POOL[self.bossIndex].capitalize()
+        return s
+
 class Link:
     def __init__(self, nodes, color):
         self.nodes = nodes
@@ -124,42 +113,50 @@ class Link:
         for node in self.nodes:
             node.isActive = isActive
 
-#PRIMED is the state after right clicking an area transition. 
-#Left clicking a different transition while in the PRIMED state will create a link
+    def toString(self, node = None):
+        if not node:
+            node = self.nodes[0]
+        return str(node) + " ==> " + str(self.nodes[1] if node == self.nodes[0] else self.nodes[0])
+
+#Indicates a link that has been initiated
 class ClickState(Enum):
     NORMAL = 1
     PRIMED = 2
 
 #Handles all of the logic and presentation of the area tracker
-#It is a Pygame Surface, so essentially a drawing canvas for the program
+#It is a Pygame Surface, so essentially a drawing canvas for the tracker
 class AreaTracker(pygame.Surface):
-    def __init__(self, size, position, nodeData, nodeVarieties, backgroundData, baseNodePath, arrowPath, trashcanPath, trashcanPosition, bossNodePaths, bossNodeData, bossNodeColor,  hasBackgroundImage = True):
+    def __init__(self, size, position, nodeData, nodeVarieties, areaMapPath, baseNodePath, arrowPath, trashcanPath, trashcanPosition, bossNodePaths, bossNodeData, settingsObj):
         super().__init__(size, flags = pygame.SRCALPHA)
         self.position = position
+        self.rect = self.get_rect(topleft = position)
         self.links = {}
         self.nodes = initAreaNodes(nodeData)
         self.nodeImages = initAreaImages(nodeVarieties, baseNodePath)
-        self.background = initBackground(backgroundData, hasBackgroundImage)
+        self.background = image.singleImage(areaMapPath)
         self.arrow = image.singleImage(arrowPath)
         self.trashcan = Trashcan(trashcanPosition, trashcanPath)
         self.bossNodes = initBossNodes(bossNodeData)
-        self.bossImages = initBossImages(bossNodePaths, bossNodeColor)
+        self.bossImages = initBossImages(bossNodePaths)
         self.clickState = ClickState.NORMAL
         self.lastNode = None
         self.lineIndex = 0
+        self.settingsObj = settingsObj
 
     #Removes any existing link from the two nodes, creates a link between the two, and assigns it a color from the pool of line colors
     #Changes the color of each node to represent heat or water when applicable
     def addLink(self, nodeA, nodeB):
         self.removeLink(nodeA)
         self.removeLink(nodeB)
+
         nodeA.isLinked = nodeB.isLinked = True
+
         nodeA.linkType = nodeB.nodeType
         nodeB.linkType = nodeA.nodeType
+
         self.links[nodeA] = self.links[nodeB] = Link([nodeA, nodeB], LINE_COLORS[self.lineIndex])
         self.lineIndex = (self.lineIndex + 1) % LINE_COLORS_COUNT
 
-    #checks for an existing link and removes it
     def removeLink(self, node):
         if node in self.links:
             for n in self.links[node].nodes:
@@ -167,101 +164,92 @@ class AreaTracker(pygame.Surface):
                 n.isLinked = False
                 n.linkType = "normal"
 
-    #Checks each node for mouse collision and performs an action on it, depending on the state of the tracker
-    def handleLeftClick(self, mousePosition):
-        #area node collision check
-        for node in self.nodes.values():
-            if node.rect.collidepoint(mousePosition):
-                if self.clickState == ClickState.PRIMED and node != self.lastNode:
-                    self.addLink(self.lastNode, node)
-                elif self.clickState == ClickState.NORMAL:
-                    if node in self.links:
-                        self.links[node].toggleActive(not node.isActive)
-                    else:
-                        node.isActive = not node.isActive
+    #updates the various tracker components, returns mouse hover message
+    def update(self, mousePos, click):
+        message = ""
+        
+        for areaNode in self.nodes.values():
+            if areaNode.rect.collidepoint(mousePos):
+                message = str(areaNode) if not areaNode.isLinked else self.links[areaNode].toString(areaNode)
+                if click[0]: #left click
+                    if self.clickState == ClickState.PRIMED and areaNode != self.lastNode:
+                        self.addLink(self.lastNode, areaNode)
+                    elif self.clickState == ClickState.NORMAL:
+                        if areaNode in self.links:
+                            self.links[areaNode].toggleActive(not areaNode.isActive)
+                        else:
+                            areaNode.isActive = not areaNode.isActive
+                    self.clickState = ClickState.NORMAL
+                elif click[2]: #right click
+                    self.clickState = ClickState.PRIMED
+                    self.lastNode = areaNode  
+                elif click[1]: #middle click
+                    self.clickState = ClickState.NORMAL
+                break
 
-        #boss node collision check
         for bossNode in self.bossNodes:
-            if bossNode.rect.collidepoint(mousePosition) and self.clickState == ClickState.NORMAL:
-                bossNode.isActive = not bossNode.isActive
+            if bossNode.rect.collidepoint(mousePos):
+                message = str(bossNode)
+                if click[0]: #left click
+                    if self.clickState == ClickState.NORMAL:
+                        bossNode.isActive = not bossNode.isActive
+                elif click[2]: #right click
+                    bossNode.bossIndex = (bossNode.bossIndex + 1) % BOSS_COUNT
+                if any(click):
+                    self.clickState = ClickState.NORMAL
+                break
 
-        #trashcan collision check. Will remove a link from a node if in a PRIMED state
-        if self.clickState == ClickState.PRIMED and self.trashcan.rect.collidepoint(mousePosition):
-            self.removeLink(self.lastNode)
+        if self.trashcan.rect.collidepoint(mousePos) and self.clickState == ClickState.PRIMED:
+            message = str(self.trashcan)
+            if click[0]:
+                self.removeLink(self.lastNode)
+            if any(click):
+                self.clickState = ClickState.NORMAL
+        
+        if not message and any(click):
+            self.clickState = ClickState.NORMAL
 
-        #Every left click returns tracker to NORMAL state
-        self.clickState = ClickState.NORMAL
-
-    #Checks each node for mouse collision and performs an action on it, depending on the state of the tracker
-    def handleRightClick(self, mousePosition):
-        #boss node collision check. Will cycle through bosses if not in PRIMED state
-        for bossNode in self.bossNodes:
-            if bossNode.rect.collidepoint(mousePosition) and self.clickState == ClickState.NORMAL:
-                bossNode.bossIndex = (bossNode.bossIndex + 1) % BOSS_COUNT
-
-        self.clickState = ClickState.NORMAL
-
-        #area node collision check. will "prime" the node and put tracker in "PRIMED" state
-        for node in self.nodes.values():
-            if node.rect.collidepoint(mousePosition):
-                self.clickState = ClickState.PRIMED
-                self.lastNode = node    
-
-    #Every middle click will return tracker to NORMAL state. 
-    #May add other middle click functionality in the future.
-    def handleMiddleClick(self, mousePosition):
-        self.clickState = ClickState.NORMAL
+        return message
 
     # Clears the canvas and draws all of the different components
     def draw(self, mousePosition):
-        self.fill(BLACKISH)
+        self.fill(TRANSPARENT)
         self.blit(self.background, ORIGIN)
         
-        #draw area nodes
         for node in self.nodes.values():
-            #determine which node image to use
-            key = "inactive" if not node.isActive else "unlinked" if not node.isLinked else node.linkType
-
-            #check for mouse hover
+            key = "inactive" if not node.isActive else "unlinked" if not node.isLinked else "normal" if not self.settingsObj.checkOption("Suit Indicators") else node.linkType
             if node.rect.collidepoint(mousePosition):
                 key = key + "Highlight"
 
             self.blit(self.nodeImages[key], node.rect)
 
-            #Draw arrow on primed node if in PRIMED state
-            if self.clickState == ClickState.PRIMED:
-                if self.lastNode == node:
-                    self.blit(self.arrow, node.rect)
+            if self.clickState == ClickState.PRIMED and self.lastNode == node:
+                self.blit(self.arrow, node.rect)
 
-        #draw boss nodes
         for bossNode in self.bossNodes:
             key = BOSS_POOL[bossNode.bossIndex]
-            #check if bossnode is active
             if not bossNode.isActive:
                 key = key + "Inactive"
 
-            #check for mouse hover
             if bossNode.rect.collidepoint(mousePosition):
                 key = key + "Highlight"
 
             self.blit(self.bossImages[key], bossNode.rect)
 
-        #draw trashcan if PRIMED
         if self.clickState == ClickState.PRIMED:
             self.blit(self.trashcan.highlightImage if self.trashcan.rect.collidepoint(mousePosition) else self.trashcan.image, self.trashcan.rect)
 
-        #draw all of the links
         for link in set(self.links.values()):
-            color = link.color if link.isActive else DARK_GRAY
+            color = DARK_GRAY if not link.isActive else LINE_COLORS[0] if not self.settingsObj.checkOption("Multicolored Lines") else link.color
             lineWidth = LINE_WIDTH if link.isActive else min(LINE_WIDTH, 2)
             pygame.draw.line(self, color, link.nodes[0].position, link.nodes[1].position, lineWidth)
 
-    #Resets the tracker to initial state. Not used yet but probably will be implemented
+    #Resets the tracker to initial state. Not used atm
     def resetTracker(self):
         for node in self.nodes.values():
             self.removeLink(node)
             node.isActive = True
-            node.linkType = "Normal"
+            node.linkType = "normal"
 
         for bossNode in self.bossNodes:
             bossNode.isActive = True
