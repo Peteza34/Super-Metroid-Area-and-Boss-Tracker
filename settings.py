@@ -1,16 +1,10 @@
-#Variables that I may expose to the user in the future
+class Settings():
+    def __init__(self, options):
+        self.options = options
 
-AREA_TRACKER_BACKGROUND_IMAGE = False
+    def checkOption(self, key):
+        return self.options[key]
 
-#RGB
-LINE_COLORS = [(0, 81, 240),
-                (95, 169, 23),
-                (251, 104, 1),
-                (100, 118, 134),
-                (109, 135, 99),
-                (121, 59, 62),
-                (241, 163, 9),
-                (229, 20, 0)]
-
-#int >= 1
-LINE_WIDTH = 5
+    def toggleOption(self, key):
+        self.options[key] = not self.options[key]
+        return self.options[key]
