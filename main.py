@@ -21,7 +21,7 @@ os.environ["SDL_VIDEO_WINDOW_POS"] = str(WINDOW_OFFSET[0]) + "," + str(WINDOW_OF
 
 pygame.init()
 
-WIN = pygame.display.set_mode(WINDOW_SIZE)
+WIN = pygame.display.set_mode(WINDOW_SIZE, pygame.RESIZABLE)
 pygame.display.set_caption(TITLE)
 pygame.display.set_icon(image.singleImage(ICON_PATH))
 
@@ -32,10 +32,13 @@ def main():
     mouse = pygame.mouse
     isRunning = True
 
+    newSize = WINDOW_SIZE
+
     while isRunning:
         clock.tick(FPS)
         click = [0, 0, 0] #[left click, middle click, right click]
         mousePos = mouse.get_pos()
+        mousePos = (mousePos[0] * WINDOW_SIZE[0] / newSize[0], mousePos[1] * WINDOW_SIZE[1] / newSize[1])
 
         #check for events
         for event in pygame.event.get():
@@ -43,6 +46,8 @@ def main():
                 isRunning = False
             if event.type == pygame.MOUSEBUTTONDOWN:
                 click = mouse.get_pressed()[:3]
+            if event.type == pygame.VIDEORESIZE:
+                newSize = event.dict['size']
 
         #update trackers
         _trackerCore.update(mousePos, click)
@@ -50,7 +55,7 @@ def main():
         #clear screen and draw trackers
         WIN.fill(TRANSPARENT)
         _trackerCore.draw(mousePos)
-        WIN.blit(_trackerCore, ORIGIN)
+        WIN.blit(pygame.transform.scale(_trackerCore, newSize), ORIGIN)
         pygame.display.update()
     
     pygame.quit()
