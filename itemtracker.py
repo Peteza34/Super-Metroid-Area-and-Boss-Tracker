@@ -10,7 +10,15 @@ def initItemButtons(data):
 
         #find coordinates using grid position
         pos = (entry[1][0] * (ITEM_WIDTH + ITEM_SPACING) + ITEM_SPACING, entry[1][1] * (ITEM_WIDTH + ITEM_SPACING) + ITEM_SPACING)
-        buttons[key] = ItemButton(key, pos)
+        
+        #check for three-tiered item flag and create the item accordingly
+        if entry[3]:
+            buttons[key] = ThreeTieredItemButton(key, pos)
+            starterItemImage = image.singleImage(('images','items','starter'+entry[2][2]))
+            images[key + "Starter"] = starterItemImage
+            images[key + "StarterHighlight"] = image.brightenImage(starterItemImage.copy(), ITEM_BRIGHTEN_AMOUNT)
+        else:
+            buttons[key] = ItemButton(key, pos)
 
         itemImage = image.dimImage(image.singleImage(entry[2]), ITEM_DIM_PERCENT)
         itemImageInactive = image.dimImage(image.singleImage(entry[2]), ITEM_DIM_PERCENT_INACTIVE)
@@ -20,7 +28,7 @@ def initItemButtons(data):
 
         #mouse hover images
         images[key + "Highlight"] = image.brightenImage(itemImage.copy(), ITEM_BRIGHTEN_AMOUNT)
-        images[key + "InactiveHighlight"] = image.brightenImage(itemImageInactive.copy(), ITEM_BRIGHTEN_AMOUNT_INACTIVE)       
+        images[key + "InactiveHighlight"] = image.brightenImage(itemImageInactive.copy(), ITEM_BRIGHTEN_AMOUNT_INACTIVE)
 
     return (buttons, images)
 
@@ -30,9 +38,19 @@ class ItemButton:
         self.position = position
         self.rect = pygame.Rect(position[0], position[1], ITEM_WIDTH, ITEM_WIDTH)
         self.isActive = False
+        self.isThreeTiered = False
     
     def __str__(self):
         return self.name
+
+class ThreeTieredItemButton(ItemButton):
+    def __init__(self, name, position):
+        self.starterTierActive = False
+        super().__init__(name, position)
+        self.isThreeTiered = True
+
+    
+    
 
 #Handles the logic and presentation of the item tracker
 #It is a Pygame Surface, so essentially a drawing canvas
@@ -49,7 +67,24 @@ class ItemTracker(pygame.Surface):
             if item.rect.collidepoint(mousePos):
                 status = str(item)
                 if any(click):
-                    item.isActive = not item.isActive
+                    if not item.isThreeTiered: # check if item is three-tiered
+                        # handle non-three-tiered items
+                        item.isActive = not item.isActive
+                    else: 
+                        # handle three-tiered item logic
+                        if item.isActive:
+                            item.isActive = False
+                            item.starterTierActive = False
+                        elif item.starterTierActive: 
+                            item.starterTierActive = False
+                            if click[0]: # left click
+                                item.isActive = True
+                        else:
+                            if click[0]:
+                                item.isActive = True
+                            else:
+                                item.starterTierActive = True
+
         return status
 
     #Clears the canvas, determines which image to draw for each item, and draws it
@@ -57,10 +92,20 @@ class ItemTracker(pygame.Surface):
         self.fill(TRANSPARENT)
         for key, val in self.buttons.items():
             k = key
-            if not val.isActive:
-                k += "Inactive"
+            if not val.isThreeTiered:
+                # handle two-tiered items
+                if not val.isActive:
+                    k += "Inactive"
+            else:
+                # handle three-tiered items
+                if val.starterTierActive:
+                    k = key + "Starter"
+                elif not val.isActive:
+                    k += "Inactive"
+            
             if val.rect.collidepoint(mousePosition):
-                k += "Highlight"
+                    k += "Highlight"
+            
             self.blit(self.images[k], val.position)
 
     #Resets item tracker to inital state
