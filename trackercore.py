@@ -1,5 +1,5 @@
 import pygame
-import areatracker, itemtracker, statusbar, menu, settings
+import areatracker, itemtracker, statusbar, menu, settings, reset
 from enum import Enum
 from constants import *
 
@@ -11,17 +11,21 @@ def initSettingsObject(data):
 
 #Indicates whether the settings menu is open or not
 class TrackerState(Enum):
-    DEFAULT = 1
-    SETTINGS = 2
+    DEFAULT = 1 
+    SETTINGS = 2 # settings menu is up
+    RESET = 3 # reset menu is up
+    RESETTING = 4 # resetting has been confirmed and we need to actually reset the tracker now
 
 class TrackerCore(pygame.Surface):
     def __init__(self, size, backgroundImage):    
         super().__init__(size, flags = pygame.SRCALPHA)
         self.settingsObj = initSettingsObject(SETTINGS_DATA)
+        self.resetObj = initSettingsObject(RESET_DATA)
         self.itemTracker = itemtracker.ItemTracker(ITEM_TRACKER_SIZE, ITEM_TRACKER_POSITION, ITEM_DATA)
         self.areaTracker = areatracker.AreaTracker(AREA_TRACKER_SIZE, AREA_TRACKER_POSITION, NODE_DATA, NODE_COLORS, AREA_MAP_PATH, BASE_NODE_PATH, ARROW_PATH, TRASHCAN_PATH, TRASHCAN_POSITION, BOSS_PATHS, BOSS_DATA, self.settingsObj)
         self.statusBar = statusbar.StatusBar(STATUS_BAR_SIZE, STATUS_BAR_POSITION, self.settingsObj)
         self.settingsMenu = menu.MenuPanel(MENU_SIZE, MENU_POSITION, SETTINGS_DATA, self.settingsObj)
+        self.resetMenu = reset.MenuPanel(RESET_MENU_SIZE, RESET_MENU_POSITION, RESET_DATA)
         self.backgroundImage = backgroundImage
         self.trackerState = TrackerState.DEFAULT
 
@@ -38,6 +42,14 @@ class TrackerCore(pygame.Surface):
         elif self.trackerState == TrackerState.SETTINGS: #settings menu open
             self.trackerState = TrackerState(self.settingsMenu.update((mousePos[0] - self.settingsMenu.position[0], mousePos[1] - self.settingsMenu.position[1]), click))
             self.statusBar.drawMessage = False
+        elif self.trackerState == TrackerState.RESET: #reset menu open
+            self.trackerState = TrackerState(self.resetMenu.update((mousePos[0] - self.resetMenu.position[0], mousePos[1] - self.resetMenu.position[1]), click))
+            self.statusBar.drawMessage = False
+        elif self.trackerState == TrackerState.RESETTING: #we are resetting
+            self.itemTracker.resetTracker()
+            self.areaTracker.resetTracker()
+            self.statusBar.drawMessage = False
+            self.trackerState = TrackerState.DEFAULT # set the tracker back to default state since nothing else is gonna do it
 
     def draw(self, mousePosition):
         self.fill(BLACK)
@@ -58,3 +70,8 @@ class TrackerCore(pygame.Surface):
         if self.trackerState == TrackerState.SETTINGS:
             self.settingsMenu.draw((mousePosition[0] - self.settingsMenu.position[0], mousePosition[1] - self.settingsMenu.position[1]))
             self.blit(self.settingsMenu, self.settingsMenu.position)
+        
+        #reset menu open
+        if self.trackerState == TrackerState.RESET:
+            self.resetMenu.draw((mousePosition[0] - self.resetMenu.position[0], mousePosition[1] - self.resetMenu.position[1]))
+            self.blit(self.resetMenu, self.resetMenu.position)

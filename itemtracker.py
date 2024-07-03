@@ -109,7 +109,8 @@ class ItemTracker(pygame.Surface):
             self.blit(self.images[k], val.position)
 
     #Resets item tracker to inital state
-    #Not used yet
     def resetTracker(self):
         for button in self.buttons.values():
             button.isActive = False
+            if button.isThreeTiered:
+                button.starterTierActive = False

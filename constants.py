@@ -36,6 +36,7 @@ STATUS_BAR_COLOR = BLACKISH
 STATUS_FONT_PATH = ("fonts", "super-metroid.ttf")
 STATUS_FONT_SIZE = 12
 
+RESET_POSITION = ((16, STATUS_BAR_SIZE[1] // 2))
 CONFIG_POSITION = ((STATUS_BAR_SIZE[0] - STATUS_BAR_SIZE[1] // 2 - 4, STATUS_BAR_SIZE[1] // 2)) #relative to status bar
 CONFIG_BRIGHTEN_AMOUNT = 64
 
@@ -122,7 +123,8 @@ ARROW_PATH = ("images", "arrow.png")
 TRASHCAN_PATH = ("images", "trashcan.png")
 AREA_MAP_PATH = ("images", "areamap.png")
 BACKGROUND_PATH = ("images", "background.png")
-CONIFIG_PATH = ("images", "config.png")
+CONFIG_PATH = ("images", "config.png")
+RESET_PATH = ("images", "reset.png")
 MENU_FONT_PATH = ("fonts", "super-metroid.ttf")
 MENU_BACKGROUND_PATH = ("images", "menubackground.png")
 EXIT_IMAGE_PATH = ("images", "exit.png")
@@ -161,3 +163,16 @@ MENU_TEXT_XOFFSET = -360
 MENU_EXIT_POSITION = (416, 411) # relative to menu
 MENU_SIZE = (512, 512)
 MENU_POSITION = (AREA_TRACKER_POSITION[0] + 64, AREA_TRACKER_POSITION[1] + 62)
+
+#(text, position(relative to reset panel))
+RESET_DATA = (("Reset the tracker?", (40, 70)),
+              ("This cannot be undone.", (40, 140)),
+              ("Yes", (90,269)),
+              ("No", (375,269)))
+
+RESET_MENU_SIZE = (512, 400)
+RESET_EXIT_POSITION = (368, 299) # relative to reset panel
+RESET_CHECK_POSITION = (96,299) # relative to reset panel
+RESET_MENU_POSITION = (AREA_TRACKER_POSITION[0] + 64, AREA_TRACKER_POSITION[1] + 90)
+RESET_BACKGROUND_PATH = (("images","resetbackground.png"))
+RESET_CHECK_PATH = (("images","checkmark.png"))

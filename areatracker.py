@@ -244,7 +244,7 @@ class AreaTracker(pygame.Surface):
             lineWidth = LINE_WIDTH if link.isActive else min(LINE_WIDTH, 2)
             pygame.draw.line(self, color, link.nodes[0].position, link.nodes[1].position, lineWidth)
 
-    #Resets the tracker to initial state. Not used atm
+    #Resets the tracker to initial state.
     def resetTracker(self):
         for node in self.nodes.values():
             self.removeLink(node)
@@ -253,4 +253,4 @@ class AreaTracker(pygame.Surface):
 
         for bossNode in self.bossNodes:
             bossNode.isActive = True
-            bossNode.bossIndex = 0            
+            bossNode.bossIndex = 0
