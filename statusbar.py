@@ -13,8 +13,10 @@ class StatusBar(pygame.Surface):
         self.position = position
         self.font = pygame.font.Font(os.path.join(*STATUS_FONT_PATH), STATUS_FONT_SIZE)
         self.backgroundColor = STATUS_BAR_COLOR
-        self.menuImage, self.menuHighlightImage = initMenuImages(CONIFIG_PATH)
+        self.menuImage, self.menuHighlightImage = initMenuImages(CONFIG_PATH)
         self.menuRect = self.menuImage.get_rect(center = CONFIG_POSITION)
+        self.resetImage, self.resetHighlightImage = initMenuImages(RESET_PATH)
+        self.resetRect = self.resetImage.get_rect(center = RESET_POSITION)
         self.lastMessage = ""
         self.messageCenter = (size[0] // 2, size[1] // 2)
         self.messageImage = None
@@ -29,6 +31,11 @@ class StatusBar(pygame.Surface):
             message = "Settings"
             if click[0]:
                 trackerState = 2 #TrackerState.SETTINGS
+        
+        if self.resetRect.collidepoint(mousePos):
+            message = "Reset"
+            if click[0]:
+                trackerState = 3 #TrackerState.RESET
        
         if message:
             self.drawMessage = True
@@ -50,3 +57,4 @@ class StatusBar(pygame.Surface):
             self.blit(self.messageImage, self.messageRect)
         
         self.blit(self.menuHighlightImage if self.menuRect.collidepoint(mousePos) else self.menuImage, self.menuRect)
+        self.blit(self.resetHighlightImage if self.resetRect.collidepoint(mousePos) else self.resetImage, self.resetRect)

@@ -36,6 +36,7 @@ STATUS_BAR_COLOR = BLACKISH
 STATUS_FONT_PATH = ("fonts", "super-metroid.ttf")
 STATUS_FONT_SIZE = 12
 
+RESET_POSITION = ((16, STATUS_BAR_SIZE[1] // 2))
 CONFIG_POSITION = ((STATUS_BAR_SIZE[0] - STATUS_BAR_SIZE[1] // 2 - 4, STATUS_BAR_SIZE[1] // 2)) #relative to status bar
 CONFIG_BRIGHTEN_AMOUNT = 64
 
@@ -122,26 +123,27 @@ ARROW_PATH = ("images", "arrow.png")
 TRASHCAN_PATH = ("images", "trashcan.png")
 AREA_MAP_PATH = ("images", "areamap.png")
 BACKGROUND_PATH = ("images", "background.png")
-CONIFIG_PATH = ("images", "config.png")
+CONFIG_PATH = ("images", "config.png")
+RESET_PATH = ("images", "reset.png")
 MENU_FONT_PATH = ("fonts", "super-metroid.ttf")
 MENU_BACKGROUND_PATH = ("images", "menubackground.png")
 EXIT_IMAGE_PATH = ("images", "exit.png")
 
-#(name, grid position, path)
-ITEM_DATA = (("Morph Ball", (0, 0), ("images", "items", "morph.png")), 
-                ("Bombs", (1, 0), ("images", "items", "bombs.png")),
-                ("Spring Ball", (2, 0), ("images", "items", "springball.png")),
-                ("High Jump", (3, 0), ("images", "items", "hijump.png")),
-                ("Speed Booster", (4, 0), ("images", "items", "speed.png")),
-                ("Space Jump", (5, 0), ("images", "items", "space.png")),
-                ("Screw Attack", (6, 0), ("images", "items", "screw.png")),
-                ("Charge Beam", (0, 1), ("images", "items", "charge.png")),
-                ("Wave Beam", (1, 1), ("images", "items", "wave.png")),
-                ("Ice Beam", (2, 1), ("images", "items", "ice.png")),
-                ("Spazer Beam", (3, 1), ("images", "items", "spazer.png")),
-                ("Plasma Beam", (4, 1), ("images", "items", "plasma.png")),
-                ("Varia Suit", (5, 1), ("images", "items", "varia.png")),
-                ("Gravity Suit", (6, 1), ("images", "items", "gravity.png")))
+#(name, grid position, path, isThreeTiered) since charge has special cases to handle starter charge
+ITEM_DATA = (("Morph Ball", (0, 0), ("images", "items", "morph.png"), False), 
+                ("Bombs", (1, 0), ("images", "items", "bombs.png"), False),
+                ("Spring Ball", (2, 0), ("images", "items", "springball.png"), False),
+                ("High Jump", (3, 0), ("images", "items", "hijump.png"), False),
+                ("Speed Booster", (4, 0), ("images", "items", "speed.png"), False),
+                ("Space Jump", (5, 0), ("images", "items", "space.png"), True),     # double jump
+                ("Screw Attack", (6, 0), ("images", "items", "screw.png"), False),
+                ("Charge Beam", (0, 1), ("images", "items", "charge.png"), True),   # starter charge
+                ("Ice Beam", (1, 1), ("images", "items", "ice.png"), False),        # swapped order of ice and wave because heck u peteza
+                ("Wave Beam", (2, 1), ("images", "items", "wave.png"), False),
+                ("Spazer Beam", (3, 1), ("images", "items", "spazer.png"), False),
+                ("Plasma Beam", (4, 1), ("images", "items", "plasma.png"), False),
+                ("Varia Suit", (5, 1), ("images", "items", "varia.png"), True),     # heat shield
+                ("Gravity Suit", (6, 1), ("images", "items", "gravity.png"), True)) # pressure valve
 
 ITEM_DIM_PERCENT = 5
 ITEM_DIM_PERCENT_INACTIVE = 65
@@ -161,3 +163,16 @@ MENU_TEXT_XOFFSET = -360
 MENU_EXIT_POSITION = (416, 411) # relative to menu
 MENU_SIZE = (512, 512)
 MENU_POSITION = (AREA_TRACKER_POSITION[0] + 64, AREA_TRACKER_POSITION[1] + 62)
+
+#(text, position(relative to reset panel))
+RESET_DATA = (("Reset the tracker?", (40, 70)),
+              ("This cannot be undone.", (40, 140)),
+              ("Yes", (90,269)),
+              ("No", (375,269)))
+
+RESET_MENU_SIZE = (512, 400)
+RESET_EXIT_POSITION = (368, 299) # relative to reset panel
+RESET_CHECK_POSITION = (96,299) # relative to reset panel
+RESET_MENU_POSITION = (AREA_TRACKER_POSITION[0] + 64, AREA_TRACKER_POSITION[1] + 90)
+RESET_BACKGROUND_PATH = (("images","resetbackground.png"))
+RESET_CHECK_PATH = (("images","checkmark.png"))
